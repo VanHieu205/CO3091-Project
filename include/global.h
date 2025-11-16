@@ -30,4 +30,9 @@ extern String wifi_ssid;
 extern String wifi_password;
 extern boolean isWifiConnected;
 extern SemaphoreHandle_t xBinarySemaphoreInternet;
+
+extern SemaphoreHandle_t xBinarySemaphore;
+extern volatile uint8_t button_press_count;
+
+
 #endif
