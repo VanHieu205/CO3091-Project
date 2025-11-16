@@ -18,6 +18,7 @@ void setup() {
   xTaskCreate(main_server_task, "Task Main Server" ,8192  ,NULL  ,2 , NULL);
   xTaskCreate(tiny_ml_task, "Tiny ML Task" ,4096 ,NULL  ,2 , NULL);
   //xTaskCreate(coreiot_task, "CoreIOT Task" ,4096  ,NULL  ,2 , NULL);
+  xTaskCreate(task_monitor_button, "MonitorButton", 2048, NULL, 10, NULL);
 }
 void loop() {
   
