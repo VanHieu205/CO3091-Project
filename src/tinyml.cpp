@@ -55,11 +55,10 @@ void tiny_ml_task(void *pvParameters)
         // --- Chuẩn hóa dữ liệu đầu vào ---
         float norm_temp = glob_temperature / 40.0f;
         float norm_humi = glob_humidity / 100.0f;
-        float norm_light = glob_light / 4095.0f;
-        // --- Gán vào tensor đầu vào ---
+
+        // --- Gán vào tensor đầu vào (chỉ 2 input) ---
         input->data.f[0] = norm_temp;   // Nhiệt độ
         input->data.f[1] = norm_humi;   // Độ ẩm
-        input->data.f[2] = norm_light;  // Ánh sáng
 
         // --- Chạy mô hình ---
         TfLiteStatus invoke_status = interpreter->Invoke();
@@ -73,14 +72,13 @@ void tiny_ml_task(void *pvParameters)
 
             // In ra log để kiểm tra
             Serial.printf(
-                "[TinyML] Input (scaled): T=%.2f, H=%.2f, L=%.3f → Output=%.3f\n",
-                norm_temp, norm_humi, norm_light, last_inference);
-
+                "[TinyML] Input (scaled): T=%.2f, H=%.2f → Output=%.3f\n",
+                norm_temp, norm_humi, last_inference);
 
             if (last_inference > 0.5)
                 Serial.println("AI dự đoán: Bất thường!");
             else
-                Serial.println(" AI dự đoán: Bình thường.");
+                Serial.println("AI dự đoán: Bình thường.");
         }
 
         vTaskDelay(pdMS_TO_TICKS(3000)); // 3 giây / vòng
