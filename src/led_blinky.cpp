@@ -99,7 +99,7 @@ void led_blinky(void *pvParameters) {
       default:
         if (sensorError) {
           digitalWrite(LED2_GPIO, HIGH); ledDelayMs(100);
-digitalWrite(LED2_GPIO, LOW);  ledDelayMs(150);
+          digitalWrite(LED2_GPIO, LOW);  ledDelayMs(150);
         }
         else if (extremeAlert) {
           digitalWrite(LED2_GPIO, HIGH);
