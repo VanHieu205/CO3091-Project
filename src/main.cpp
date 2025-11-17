@@ -12,7 +12,6 @@ extern void data_logger_task(void *pvParameters);
 void setup()
 {
   Serial.begin(115200);
-
   xTaskCreate(led_blinky, "Task LED Blink", 4096, NULL, 2, NULL);
   // xTaskCreate(neo_blinky, "Task NEO Blink" ,2048  ,NULL  ,2 , NULL);
   xTaskCreate(temp_humi_monitor, "Task TEMP HUMI Monitor", 4096, NULL, 2, NULL);
