@@ -84,3 +84,34 @@ void tiny_ml_task(void *pvParameters)
         vTaskDelay(pdMS_TO_TICKS(3000)); // 3 giây / vòng
     }
 }
+void evaluation_task(void *pvParameters) {
+    
+    // 1. Khởi tạo TFLite
+    setupTinyML();
+    Serial.println("ESP32 Tester Ready. Waiting for commands");
+
+    while (1) {
+        if (Serial.available() > 0) {
+            String inputStr = Serial.readStringUntil('\n');
+
+            float temp, humi;
+            if (sscanf(inputStr.c_str(), "%f,%f", &temp, &humi) == 2) {
+               
+                float temp_scaled = temp / 40.0f;
+                float humi_scaled = humi / 100.0f;
+
+                input->data.f[0] = temp_scaled;
+                input->data.f[1] = humi_scaled;
+
+                interpreter->Invoke();
+
+                float prediction_score = output->data.f[0];
+                int prediction = (prediction_score > 0.5) ? 1 : 0;
+
+                Serial.println(prediction);
+            }
+        }
+        
+        vTaskDelay(pdMS_TO_TICKS(1)); 
+    }
+}

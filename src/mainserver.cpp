@@ -2,6 +2,9 @@
 #include <WiFi.h>
 #include <WebServer.h>
 extern QueueHandle_t g_ledQueue;
+extern String wifi_ssid;
+extern String wifi_password;
+
 bool led1_state = false;
 bool led2_state = false;
 bool isAPMode = true;
@@ -11,7 +14,8 @@ WebServer server(80);
 unsigned long connect_start_ms = 0;
 bool connecting = false;
 
-String mainPage() {
+String mainPage()
+{
   String html = R"rawliteral(
   <!DOCTYPE html>
   <html lang="vi">
@@ -90,6 +94,15 @@ String mainPage() {
 
     <!-- =================== HOME TAB =================== -->
     <div id="home" class="page show">
+      <div class="card">
+        <h2>📡 Trạng thái WiFi</h2>
+        <p><b>Chế độ:</b> <span id="wifiMode">--</span></p>
+        <p><b>IP:</b> <span id="wifiIP">--</span></p>
+        <p><b>RSSI:</b> <span id="wifiRSSI">--</span></p>
+        <p><b>Uptime:</b> <span id="wifiUptime">--</span></p>
+        <p><b>Internet:</b> <span id="wifiOnline">--</span></p>
+      </div>
+
       <div class="card">
         <h2>📊 Theo dõi nhiệt độ & độ ẩm</h2>
         <canvas id="chartTH" height="150"></canvas>
@@ -175,6 +188,32 @@ String mainPage() {
           document.getElementById('led2Btn').className = "device-btn " + (j.led2 === "ON" ? "on" : "off");
         });
       }
+      function formatTime(sec){
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        const s = sec % 60;
+        return `${h}h ${m}m ${s}s`;
+      }
+
+      function updateWiFiStatus() {
+        fetch('/wifi_status')
+          .then(r => r.json())
+          .then(d => {
+            document.getElementById("wifiMode").innerText = d.mode;
+            document.getElementById("wifiIP").innerText = d.ip;
+            document.getElementById("wifiRSSI").innerText = d.rssi + " dBm";
+            document.getElementById("wifiUptime").innerText = formatTime(d.uptime);
+            document.getElementById("wifiOnline").innerText = d.online ? "Online" : "Offline";
+          })
+          .catch(err => console.log("WiFi status error:", err));
+      }
+
+      setInterval(updateWiFiStatus, 3000);
+      updateWiFiStatus();
+
+
+      
+
 
       // ================= SENSOR POLLING =================
       function updateSensors(){
@@ -224,11 +263,6 @@ String mainPage() {
 
   return html;
 }
-
-
-
-
-
 
 String settingsPage()
 {
@@ -335,6 +369,8 @@ String settingsPage()
         <input name="password" id="pass" type="password" placeholder="Mật khẩu (bỏ trống nếu không có)"><br><br>
         <button type="submit">Kết nối</button>
         <button type="button" id="back" onclick="window.location='/'">Quay lại</button>
+        <button type="button" onclick="scanWiFi()" style="margin-top:12px; background:#ffeb3b; color:#000;">Quét WiFi xung quanh</button>
+        
       </form>
       <div id="msg"></div>
     </div>
@@ -350,32 +386,64 @@ String settingsPage()
             document.getElementById('msg').innerText = msg;
           });
       };
+      function scanWiFi() {
+        fetch('/wifi_scan')
+        .then(r => r.json())
+        .then(list => {
+          let html = "";
+          list.forEach(w => {
+            html += `<p><b>${w.ssid}</b> (${w.rssi} dBm) - Channel ${w.channel}</p>`;
+          });
+          document.getElementById("msg").innerHTML = html;
+        })
+        .catch(err => {
+          document.getElementById("msg").innerHTML = "Lỗi khi quét WiFi: " + err;
+        });
+      }
+
     </script>
   </body>
   </html>
   )rawliteral";
 }
 
-// ========== Handlers ==========
-void handleRoot() { server.send(200, "text/html", mainPage()); }
-void handleToggle() {
-    int id = server.arg("led").toInt();
-
-    if (id == 1) {
-        led1_mode = (led1_mode == LED_ON ? LED_OFF : LED_ON);
-        led1_last_manual = millis();           // lưu thời điểm user điều khiển
-    }
-    else if (id == 2) {
-        led2_mode = (led2_mode == LED_ON ? LED_OFF : LED_ON);
-        led2_last_manual = millis();
-    }
-
-    String json = "{";
-    json += "\"led1\":\"" + String(led1_mode == LED_ON ? "ON" : "OFF") + "\",";
-    json += "\"led2\":\"" + String(led2_mode == LED_ON ? "ON" : "OFF") + "\"}";
-    server.send(200, "application/json", json);
+// ====================WEB AUTHENTICATION====================
+bool isAuthenticated()
+{
+  if (!server.authenticate("admin", "1234"))
+  {
+    server.requestAuthentication();
+    return false;
+  }
+  return true;
 }
+// ========== Handlers ==========
+void handleRoot()
+{
+  if (!isAuthenticated())
+    return;
+  server.send(200, "text/html", mainPage());
+}
+void handleToggle()
+{
+  int id = server.arg("led").toInt();
 
+  if (id == 1)
+  {
+    led1_mode = (led1_mode == LED_ON ? LED_OFF : LED_ON);
+    led1_last_manual = millis(); // lưu thời điểm user điều khiển
+  }
+  else if (id == 2)
+  {
+    led2_mode = (led2_mode == LED_ON ? LED_OFF : LED_ON);
+    led2_last_manual = millis();
+  }
+
+  String json = "{";
+  json += "\"led1\":\"" + String(led1_mode == LED_ON ? "ON" : "OFF") + "\",";
+  json += "\"led2\":\"" + String(led2_mode == LED_ON ? "ON" : "OFF") + "\"}";
+  server.send(200, "application/json", json);
+}
 
 void handleSensors()
 {
@@ -401,8 +469,60 @@ void handleConnect()
   connect_start_ms = millis();
   connectToWiFi();
 }
+void handleWifiStatus()
+{
+  String mode = isAPMode ? "AP" : "STA";
 
-// ========== WiFi ==========
+  String ip;
+  if (isAPMode)
+  {
+    ip = WiFi.softAPIP().toString();
+  }
+  else
+  {
+    if (WiFi.status() == WL_CONNECTED)
+      ip = WiFi.localIP().toString();
+    else
+      ip = "0.0.0.0";
+  }
+
+  long rssi = 0;
+  if (!isAPMode && WiFi.status() == WL_CONNECTED)
+  {
+    rssi = WiFi.RSSI();
+  }
+
+  bool online = (!isAPMode && WiFi.status() == WL_CONNECTED && isWifiConnected);
+
+  unsigned long uptimeSec = (millis() - bootMillis) / 1000;
+
+  String json = "{";
+  json += "\"mode\":\"" + mode + "\",";
+  json += "\"ip\":\"" + ip + "\",";
+  json += "\"rssi\":" + String(rssi) + ",";
+  json += "\"uptime\":" + String(uptimeSec) + ",";
+  json += "\"online\":" + String(online ? "true" : "false");
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+void handleWifiScan() {
+  int n = WiFi.scanNetworks();
+  String json = "[";
+
+  for (int i = 0; i < n; i++) {
+    if (i) json += ",";
+    json += "{";
+    json += "\"ssid\":\"" + WiFi.SSID(i) + "\",";
+    json += "\"rssi\":" + String(WiFi.RSSI(i)) + ",";
+    json += "\"channel\":" + String(WiFi.channel(i)) + ",";
+    json += "\"encryption\":" + String(WiFi.encryptionType(i));
+    json += "}";
+  }
+  json += "]";
+  server.send(200, "application/json", json);
+}
+
 void setupServer()
 {
   server.on("/", HTTP_GET, handleRoot);
@@ -410,6 +530,9 @@ void setupServer()
   server.on("/sensors", HTTP_GET, handleSensors);
   server.on("/settings", HTTP_GET, handleSettings);
   server.on("/connect", HTTP_GET, handleConnect);
+  server.on("/wifi_status", HTTP_GET, handleWifiStatus);
+  server.on("/wifi_scan", HTTP_GET, handleWifiScan);
+
   server.begin();
 }
 
@@ -425,9 +548,12 @@ void startAP()
 
 void connectToWiFi()
 {
+  WiFi.disconnect(true);
+  vTaskDelay(100);
   WiFi.mode(WIFI_STA);
   if (wifi_password.isEmpty())
   {
+
     WiFi.begin(wifi_ssid.c_str());
   }
   else
@@ -440,13 +566,47 @@ void connectToWiFi()
   Serial.print(" Password: ");
   Serial.print(wifi_password.c_str());
 }
+void WiFiEvent(WiFiEvent_t event)
+{
+  switch (event)
+  {
+
+  case SYSTEM_EVENT_STA_CONNECTED:
+    Serial.println("[WiFi] Đã kết nối tới Access Point.");
+    break;
+
+  case SYSTEM_EVENT_STA_GOT_IP:
+    Serial.printf("[WiFi] Nhận IP: %s\n", WiFi.localIP().toString().c_str());
+    break;
+
+  case SYSTEM_EVENT_STA_DISCONNECTED:
+    Serial.println("[WiFi] Mất kết nối! Đang thử kết nối lại");
+    WiFi.reconnect();
+    break;
+
+  case SYSTEM_EVENT_AP_STACONNECTED:
+    Serial.println("[WiFi] Một client vừa kết nối vào WiFi AP.");
+    break;
+
+  case SYSTEM_EVENT_AP_STADISCONNECTED:
+    Serial.println("[WiFi] Một client vừa rời khỏi WiFi AP.");
+    break;
+
+  default:
+    Serial.printf("[WiFi] Sự kiện khác: %d\n", event);
+    break;
+  }
+}
+
 
 // ========== Main task ==========
 void main_server_task(void *pvParameters)
 {
+  WiFi.onEvent(WiFiEvent);
   pinMode(BOOT_PIN, INPUT_PULLUP);
   pinMode(LED2_PIN, OUTPUT);
   pinMode(LED1_PIN, OUTPUT);
+  bootMillis = millis();
   startAP();
   setupServer();
 
@@ -473,8 +633,7 @@ void main_server_task(void *pvParameters)
     {
       if (WiFi.status() == WL_CONNECTED)
       {
-        Serial.print("STA IP address: ");
-        Serial.println(WiFi.localIP());
+        Serial.printf("STA IP address: %s\n", WiFi.localIP().toString().c_str());
         isWifiConnected = true; // Internet access
 
         xSemaphoreGive(xBinarySemaphoreInternet);
