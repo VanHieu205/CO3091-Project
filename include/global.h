@@ -24,6 +24,7 @@ extern float glob_temperature;
 extern float glob_humidity;
 extern float glob_light;
 extern float last_inference;
+extern unsigned long bootMillis;
 extern String ssid;
 extern String password;
 extern String wifi_ssid;

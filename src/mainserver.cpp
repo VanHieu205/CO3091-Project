@@ -241,14 +241,18 @@ String mainPage()
 
           // STATUS
           let sys = "Bình thường";
-          if(d.temp > 35) sys = "🔥 Nhiệt độ cao";
-          if(d.hum > 70) sys = "💧 Độ ẩm cao";
+          if(d.temp >= 33 & d.temp <38) sys = "🔥 Nhiệt độ cao";
+          else if(d.temp <20) sys = "❄️ Nhiệt độ thấp";
+          else if(d.temp >= 38) sys = "🚨 Nhiệt độ rất cao";
+          else if(d.hum >= 85 & d.hum <95) sys = "💧 Độ ẩm cao";
+          else if(d.hum <45) sys = "💧 Độ ẩm thấp";
+          else if(d.hum >= 95) sys = "🚨 Độ ẩm rất cao";
           document.getElementById("sysStatus").innerText = sys;
 
           // AI
           let ai = "Bình thường";
           if(d.ai_result > 0.8) ai = "🚨 Nguy hiểm";
-          else if(d.ai_result > 0.6) ai = "⚠️ Cảnh báo";
+          else if(d.ai_result > 0.6) ai = "⚠️ Cảm giác khó chịu";
           document.getElementById("aiStatus").innerText = ai;
         });
       }

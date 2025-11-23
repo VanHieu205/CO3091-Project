@@ -180,4 +180,5 @@
  C:/Users/ADMIN/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_hw_support/include/soc/esp32/spiram.h \
  C:/Users/ADMIN/.platformio/packages/framework-arduinoespressif32/cores/esp32/io_pin_remap.h \
  C:/Users/ADMIN/.platformio/packages/framework-arduinoespressif32/cores/esp32/Arduino.h \
- .pio/libdeps/yolo_uno/Adafruit\ NeoPixel/Adafruit_NeoPixel.h
+ .pio/libdeps/yolo_uno/Adafruit\ NeoPixel/Adafruit_NeoPixel.h \
+ include/global.h include/monitor_button.h

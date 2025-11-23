@@ -75,10 +75,12 @@ void tiny_ml_task(void *pvParameters)
                 "[TinyML] Input (scaled): T=%.2f, H=%.2f → Output=%.3f\n",
                 norm_temp, norm_humi, last_inference);
 
-            if (last_inference > 0.5)
-                Serial.println("AI dự đoán: Bất thường!");
+            if (last_inference > 0.8)
+                Serial.println("AI dự đoán: Nguy hiểm!");
+            else if (last_inference > 0.6)
+                Serial.println("AI dự đoán: Cảm giác khó chịu");
             else
-                Serial.println("AI dự đoán: Bình thường.");
+                Serial.println("AI dự đoán: Bình thường");
         }
 
         vTaskDelay(pdMS_TO_TICKS(3000)); // 3 giây / vòng

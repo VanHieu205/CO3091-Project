@@ -22,8 +22,8 @@ void led_blinky(void *pvParameters) {
 
     bool sensorError = (isnan(TEMP) || isnan(HUMI) || isnan(LIGHT));
     bool extremeAlert = (TEMP >= 38.0f || HUMI >= 95.0f);
-    bool highAlert    = ((TEMP >= 33.0f && TEMP < 48.0f) || (HUMI >= 85.0f && HUMI < 95.0f));
-    bool lowAlert     = (TEMP < 24.0f || HUMI < 45.0f);
+    bool highAlert    = ((TEMP >= 33.0f && TEMP < 38.0f) || (HUMI >= 85.0f && HUMI < 95.0f));
+    bool lowAlert     = (TEMP < 20.0f || HUMI < 45.0f);
     bool brightEnv    = (!isnan(LIGHT) && LIGHT > 3000.0f);
     bool darkEnv      = (!isnan(LIGHT) && LIGHT <= 3000.0f);
 
