@@ -10,15 +10,27 @@ void led_blinky(void *pvParameters) {
   pinMode(LED2_GPIO, OUTPUT);
 
   Serial.println("[LED] Task started");
-
+  
   while (1) {
 
     // =========================
     //  Đọc giá trị cảm biến
     // =========================
+    
+
     float TEMP  = glob_temperature;
     float HUMI  = glob_humidity;
     float LIGHT = glob_light;
+    
+    // Nếu button được nhấn → xử lý event
+    if (xSemaphoreTake(xBinarySemaphore, 0)) {
+        Serial.println("[LED] Button event received");
+        // ví dụ đổi chế độ LED1
+        led1_mode = LED_ON;
+        led2_mode = LED_ON;
+        led1_last_manual = millis();
+        led2_last_manual = millis();
+    }
 
     bool sensorError = (isnan(TEMP) || isnan(HUMI) || isnan(LIGHT));
     bool extremeAlert = (TEMP >= 38.0f || HUMI >= 95.0f);
@@ -99,7 +111,7 @@ void led_blinky(void *pvParameters) {
       default:
         if (sensorError) {
           digitalWrite(LED2_GPIO, HIGH); ledDelayMs(100);
-digitalWrite(LED2_GPIO, LOW);  ledDelayMs(150);
+          digitalWrite(LED2_GPIO, LOW);  ledDelayMs(150);
         }
         else if (extremeAlert) {
           digitalWrite(LED2_GPIO, HIGH);
