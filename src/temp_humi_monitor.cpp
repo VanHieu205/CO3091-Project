@@ -86,33 +86,33 @@ static unsigned long lastPageMs = 0;
 
 // ------------------- updateLCDPages uses globals -------------------
 void updateLCDPages() {
-          // --- consume button event (non-blocking) ---
-        if (xBinarySemaphore != NULL) {
-          // non-blocking: chỉ xử lý nếu có event (giống neo_blinky)
-          if (xSemaphoreTake(xBinarySemaphore, 0)) {
-            // reset stored count (optional; monitor_button may overwrite next time)
-            button_press_count = 0;
-            Serial.printf("[LCD] Button event consumed in temp_humi_monitor: %u\n", button_press_count);
+        //   // --- consume button event (non-blocking) ---
+        // if (xBinarySemaphore != NULL) {
+        //   // non-blocking: chỉ xử lý nếu có event (giống neo_blinky)
+        //   if (xSemaphoreTake(xBinarySemaphore, 0)) {
+        //     // reset stored count (optional; monitor_button may overwrite next time)
+        //     button_press_count = 0;
+        //     Serial.printf("[LCD] Button event consumed in temp_humi_monitor: %u\n", button_press_count);
 
-            // xử lý button_press_count:
-            if (button_press_count == 1) {
-              // next page
-              currentPage = (currentPage + 1) % PAGE_COUNT;
-              lastPageMs = millis();
-            } else if (button_press_count == 2) {
-              // prev page
-              if (currentPage == 0) currentPage = PAGE_COUNT - 1;
-              else currentPage--;
-              lastPageMs = millis();
-            } else if (button_press_count >= 3) {
-              // toggle hold
-              lcd_hold = !lcd_hold;
-              Serial.printf("[LCD] Hold toggled -> %s\n", lcd_hold ? "ON" : "OFF");
-              lastPageMs = millis();
-            }
-          }
-        }
-        
+        //     // xử lý button_press_count:
+        //     if (button_press_count == 1) {
+        //       // next page
+        //       currentPage = (currentPage + 1) % PAGE_COUNT;
+        //       lastPageMs = millis();
+        //     } else if (button_press_count == 2) {
+        //       // prev page
+        //       if (currentPage == 0) currentPage = PAGE_COUNT - 1;
+        //       else currentPage--;
+        //       lastPageMs = millis();
+        //     } else if (button_press_count >= 3) {
+        //       // toggle hold
+        //       lcd_hold = !lcd_hold;
+        //       Serial.printf("[LCD] Hold toggled -> %s\n", lcd_hold ? "ON" : "OFF");
+        //       lastPageMs = millis();
+        //     }
+        //   }
+        // }
+
   unsigned long now = millis();
   if (now - lastPageMs >= PAGE_MS) {
     currentPage = (currentPage + 1) % PAGE_COUNT;
@@ -130,22 +130,46 @@ void updateLCDPages() {
 
   // --- PHẦN SỬA ĐỔI: Cập nhật logic giống hệt trong main loop ---
   String stateLabel;
-  if (sensorError) {
-    stateLabel = "SENSOR ERROR";
-  } 
-  else if (temperature >= 38 || humidity >= 95) {
-    stateLabel = "EXTREME HOT/WET!";
-  } 
-  else if ((temperature >= 33 && temperature < 38) || 
-           (humidity >= 85 && humidity < 95)) {
-    stateLabel = "VERY HOT/HUMID!";
-  } 
-  else if (temperature < 20 || humidity < 45) {
-    stateLabel = "COLD/DRY!";
-  } 
-  else {
-    stateLabel = "NORMAL";
-  }
+        if (sensorError) {
+          stateLabel = "SENSOR ERROR";
+        } 
+        else if (temperature >= 38 && humidity >= 95) {
+          stateLabel = "EXTREME HOT&WET!";
+        } 
+        else if ((temperature >= 33 && temperature < 38) || 
+                (humidity >= 85 && humidity < 95)) {
+          stateLabel = "VERY HOT/HUMID!";
+        } 
+        else if (temperature < 20 && humidity < 45) {
+          stateLabel = "COLD && DRY!";
+        } 
+        else if (temperature >= 38 && humidity <45) {
+          stateLabel = "EXTREME HOT&DRY!";
+        } 
+        else if (temperature < 20 && humidity >= 95) {
+          stateLabel = "COLD & WET!";
+        }
+        else if (temperature < 20) {
+          stateLabel = "COLD!";
+        } 
+        else if (temperature >=33) {
+          stateLabel = "VERY HOT!";
+        } 
+        else if (temperature >= 38) {
+          stateLabel = "EXTREME HOT!";
+        } 
+        else if (humidity >= 95) {
+          stateLabel = "WET!";
+        } 
+        else if (humidity >= 85 && humidity < 95) {
+          stateLabel = "HUMID!";
+        } 
+        else if (humidity < 45) {
+          stateLabel = "DRY!";
+        } 
+        else {
+          stateLabel = "NORMAL";
+        }
   // --------------------------------------------------------------
 
   // prepare buffers
@@ -253,22 +277,46 @@ void temp_humi_monitor(void *pvParameters) {
         glob_light = light;
 
         // --- Determine state (UNCHANGED logic you provided) ---
-        String stateLabel;
+          String stateLabel;
         if (sensorError) {
-            stateLabel = "SENSOR ERROR";
+          stateLabel = "SENSOR ERROR";
+        } 
+        else if (temperature >= 38 && humidity >= 95) {
+          stateLabel = "EXTREME HOT&WET!";
+        } 
+        else if ((temperature >= 33 && temperature < 38) || 
+                (humidity >= 85 && humidity < 95)) {
+          stateLabel = "VERY HOT/HUMID!";
+        } 
+        else if (temperature < 20 && humidity < 45) {
+          stateLabel = "COLD && DRY!";
+        } 
+        else if (temperature >= 38 && humidity <45) {
+          stateLabel = "EXTREME HOT&DRY!";
+        } 
+        else if (temperature < 20 && humidity >= 95) {
+          stateLabel = "COLD & WET!";
         }
-        else if (temperature >= 38 || humidity >= 95) {
-            stateLabel = "EXTREME HOT/WET!";
-        }
-        else if ((temperature >= 33 && temperature < 38) ||
-                 (humidity >= 85 && humidity < 95)) {
-            stateLabel = "VERY HOT/HUMID!";
-        }
-        else if (temperature < 24 || humidity < 45) {
-            stateLabel = "COLD/DRY!";
-        }
+        else if (temperature < 20) {
+          stateLabel = "COLD!";
+        } 
+        else if (temperature >=33) {
+          stateLabel = "VERY HOT!";
+        } 
+        else if (temperature >= 38) {
+          stateLabel = "EXTREME HOT!";
+        } 
+        else if (humidity >= 95) {
+          stateLabel = "WET!";
+        } 
+        else if (humidity >= 85 && humidity < 95) {
+          stateLabel = "HUMID!";
+        } 
+        else if (humidity < 45) {
+          stateLabel = "DRY!";
+        } 
         else {
-            stateLabel = "NORMAL";
+          stateLabel = "NORMAL";
         }
 
 
