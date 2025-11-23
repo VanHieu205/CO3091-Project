@@ -5,7 +5,7 @@
 
 LiquidCrystal_I2C lcd(33, 16, 2);   // 33 decimal = 0x21
 DHT20 dht20;
-
+static bool lcd_hold = false;
 // ------------------- custom chars for bar (create once) -------------------
 byte barChar[5][8] = {
   // 0 = empty (we will avoid writing byte(0) as a glyph to prevent garbage)
@@ -86,6 +86,33 @@ static unsigned long lastPageMs = 0;
 
 // ------------------- updateLCDPages uses globals -------------------
 void updateLCDPages() {
+          // --- consume button event (non-blocking) ---
+        if (xBinarySemaphore != NULL) {
+          // non-blocking: chỉ xử lý nếu có event (giống neo_blinky)
+          if (xSemaphoreTake(xBinarySemaphore, 0)) {
+            // reset stored count (optional; monitor_button may overwrite next time)
+            button_press_count = 0;
+            Serial.printf("[LCD] Button event consumed in temp_humi_monitor: %u\n", button_press_count);
+
+            // xử lý button_press_count:
+            if (button_press_count == 1) {
+              // next page
+              currentPage = (currentPage + 1) % PAGE_COUNT;
+              lastPageMs = millis();
+            } else if (button_press_count == 2) {
+              // prev page
+              if (currentPage == 0) currentPage = PAGE_COUNT - 1;
+              else currentPage--;
+              lastPageMs = millis();
+            } else if (button_press_count >= 3) {
+              // toggle hold
+              lcd_hold = !lcd_hold;
+              Serial.printf("[LCD] Hold toggled -> %s\n", lcd_hold ? "ON" : "OFF");
+              lastPageMs = millis();
+            }
+          }
+        }
+        
   unsigned long now = millis();
   if (now - lastPageMs >= PAGE_MS) {
     currentPage = (currentPage + 1) % PAGE_COUNT;
@@ -243,6 +270,8 @@ void temp_humi_monitor(void *pvParameters) {
         else {
             stateLabel = "NORMAL";
         }
+
+
 
         // --- Print to Serial (unchanged) ---
         Serial.print("Humidity: ");
