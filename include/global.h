@@ -19,6 +19,9 @@ extern int led2_mode;
 extern unsigned long led1_last_manual;
 extern unsigned long led2_last_manual;
 extern const unsigned long LED_TIMEOUT_MS;
+extern int r_glob;
+extern int g_glob;
+extern int b_glob;
 
 extern float glob_temperature;
 extern float glob_humidity;
