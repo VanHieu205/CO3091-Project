@@ -21,6 +21,12 @@ void neo_blinky(void *pvParameters){
             strip.show();
             vTaskDelay(1000);
         }
+        if(xSemaphoreTake(xBinarySemaphoreInternet,0)){
+            //server xSemaphoreGive(xBinarySemaphoreInternet);
+            strip.setPixelColor(0, strip.Color(r_glob, g_glob, b_glob));
+            strip.show();
+            vTaskDelay(1000);
+        }
         switch (status) {
             case 1:  
                 g += 15;
