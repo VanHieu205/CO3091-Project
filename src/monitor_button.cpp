@@ -8,7 +8,7 @@ void task_monitor_button(void *pvParameters)
     const TickType_t measureWindow = pdMS_TO_TICKS(1000); // 1 giây
     bool counting = false;
     // Create binary semaphore
-    xBinarySemaphore = xSemaphoreCreateBinary();
+    xBinarySemaphore = xSemaphoreCreateCounting(3, 0);
 
     while (1) {
         // Check if button is pressed (active-low)
@@ -44,6 +44,8 @@ void task_monitor_button(void *pvParameters)
 
                     Serial.printf("[BUTTON] Press count = %d\n", button_press_count);
                 }
+                xSemaphoreGive(xBinarySemaphore);
+                xSemaphoreGive(xBinarySemaphore);
                 xSemaphoreGive(xBinarySemaphore);
             }
         }

@@ -86,37 +86,11 @@ static unsigned long lastPageMs = 0;
 
 // ------------------- updateLCDPages uses globals -------------------
 void updateLCDPages() {
-        //   // --- consume button event (non-blocking) ---
-        // if (xBinarySemaphore != NULL) {
-        //   // non-blocking: chỉ xử lý nếu có event (giống neo_blinky)
-        //   if (xSemaphoreTake(xBinarySemaphore, 0)) {
-        //     // reset stored count (optional; monitor_button may overwrite next time)
-        //     button_press_count = 0;
-        //     Serial.printf("[LCD] Button event consumed in temp_humi_monitor: %u\n", button_press_count);
-
-        //     // xử lý button_press_count:
-        //     if (button_press_count == 1) {
-        //       // next page
-        //       currentPage = (currentPage + 1) % PAGE_COUNT;
-        //       lastPageMs = millis();
-        //     } else if (button_press_count == 2) {
-        //       // prev page
-        //       if (currentPage == 0) currentPage = PAGE_COUNT - 1;
-        //       else currentPage--;
-        //       lastPageMs = millis();
-        //     } else if (button_press_count >= 3) {
-        //       // toggle hold
-        //       lcd_hold = !lcd_hold;
-        //       Serial.printf("[LCD] Hold toggled -> %s\n", lcd_hold ? "ON" : "OFF");
-        //       lastPageMs = millis();
-        //     }
-        //   }
-        // }
-
+        
   unsigned long now = millis();
-  if (now - lastPageMs >= PAGE_MS) {
-    currentPage = (currentPage + 1) % PAGE_COUNT;
-    lastPageMs = now;
+  if (!lcd_hold && (now - lastPageMs >= PAGE_MS)) {
+        currentPage = (currentPage + 1) % PAGE_COUNT;
+        lastPageMs = now;
   }
 
   // read globals once (atomic-ish)
@@ -171,7 +145,7 @@ void updateLCDPages() {
           stateLabel = "NORMAL";
         }
   // --------------------------------------------------------------
-
+        
   // prepare buffers
   char line[17];
 
@@ -251,89 +225,113 @@ void temp_humi_monitor(void *pvParameters) {
     lcdPrintLine(lcd, 0, "Starting...      ");
     lcdPrintLine(lcd, 1, "Initializing...  ");
     vTaskDelay(pdMS_TO_TICKS(500));
+    
+    // --- BỘ ĐẾM THỜI GIAN THỐNG NHẤT CHO CẬP NHẬT CẢM BIẾN, SERIAL, và LCD AUTO-PAGE ---
+    unsigned long lastUpdateMs = 0; // Thay thế lastSerialMs và lastLCDUpdate
+    const unsigned long UPDATE_INTERVAL = 5000UL; // print, read sensor, auto-page every 5s
 
     while (1) {
+        
+        // --- 1. Tiêu thụ sự kiện nút nhấn (Non-blocking) ---
+        // Phần này nên giữ lại 100ms vì nó xử lý tương tác người dùng
+        if (xBinarySemaphore != NULL) {
+             // non-blocking: chỉ xử lý nếu có event
+             if (xSemaphoreTake(xBinarySemaphore, 0)) {
+                 
+                 Serial.printf("[LCD] Button event consumed in temp_humi_monitor: %u\n", button_press_count);
 
-        // Read DHT20
-        dht20.read();
-        float temperature = dht20.getTemperature();
-        float humidity    = dht20.getHumidity();
-        float light = analogRead(LDR_PIN); // raw ADC 0..4095
+                 // Cập nhật trang hoặc chế độ giữ (hold) dựa trên nút nhấn
+                 if (button_press_count == 1) {
+                     // next page
+                     currentPage = (currentPage + 1) % PAGE_COUNT;
+                     lastPageMs = millis(); // Reset auto-page timer
+                 } else if (button_press_count == 2) {
+                     // prev page
+                     if (currentPage == 0) currentPage = PAGE_COUNT - 1;
+                     else currentPage--;
+                     lastPageMs = millis(); // Reset auto-page timer
+                 } else if (button_press_count >= 3) {
+                     // toggle hold
+                     lcd_hold = !lcd_hold;
+                     Serial.printf("[LCD] Hold toggled -> %s\n", lcd_hold ? "ON" : "OFF");
+                     lastPageMs = millis(); // Reset auto-page timer
+                 }
+                 // Sau khi nhấn nút, LCD cần được vẽ lại ngay để phản ánh thay đổi
+                 updateLCDPages();
+             }
+         }
 
-        bool sensorError = false;
-        if (temperature == -1 || humidity == -1) {
-            Serial.println("Failed to read from DHT20!");
-            sensorError = true;
+        // --- 2. Cập nhật Dữ liệu Cảm biến, Global, và Serial (Mỗi 5s) ---
+        unsigned long now = millis();
+        if (now - lastUpdateMs >= UPDATE_INTERVAL) {
+            lastUpdateMs = now;
+            
+            // --- Đọc Cảm biến (Chỉ thực hiện mỗi 5 giây) ---
+            dht20.read();
+            float temperature = dht20.getTemperature();
+            float humidity    = dht20.getHumidity();
+            float light = analogRead(LDR_PIN); // raw ADC 0..4095
+
+            bool sensorError = false;
+            if (temperature == -1.0f || humidity == -1.0f) { // So sánh với -1.0f
+                 Serial.println("Failed to read from DHT20!");
+                 sensorError = true;
+            }
+
+            if (sensorError) {
+                temperature = -1.0f;
+                humidity    = -1.0f;
+            }
+
+            // Update global variables
+            glob_temperature = temperature;
+            glob_humidity    = humidity;
+            glob_light = light;
+
+            // --- Xác định State (Dựa trên logic đã cung cấp) ---
+            String stateLabel;
+            if (sensorError) {
+                stateLabel = "SENSOR ERROR";
+            } 
+            // ... (Phần logic xác định state ở đây để giữ cho code ngắn gọn) ...
+            // Lưu ý: Logic stateLabel ở đây nên đồng nhất với logic trong updateLCDPages()
+            else if (temperature >= 38 && humidity >= 95) {
+                stateLabel = "EXTREME HOT&WET!";
+            } else if ((temperature >= 33 && temperature < 38) || (humidity >= 85 && humidity < 95)) {
+                stateLabel = "VERY HOT/HUMID!";
+            } else if (temperature < 20 && humidity < 45) {
+                stateLabel = "COLD && DRY!";
+            } else if (temperature >= 38 && humidity <45) {
+                stateLabel = "EXTREME HOT&DRY!";
+            } else if (temperature < 20 && humidity >= 95) {
+                stateLabel = "COLD & WET!";
+            } else if (temperature < 20) {
+                stateLabel = "COLD!";
+            } else if (temperature >=33) {
+                stateLabel = "VERY HOT!";
+            } else if (temperature >= 38) {
+                stateLabel = "EXTREME HOT!";
+            } else if (humidity >= 95) {
+                stateLabel = "WET!";
+            } else if (humidity >= 85 && humidity < 95) {
+                stateLabel = "HUMID!";
+            } else if (humidity < 45) {
+                stateLabel = "DRY!";
+            } else {
+                stateLabel = "NORMAL";
+            }
+            
+
+            // --- In ra Serial (Mỗi 5s) ---
+            Serial.printf("T:%.1f, H:%.0f%%, Light:%d, State:%s\n", 
+                          temperature, humidity, (int)light, stateLabel.c_str());
         }
-
-        if (sensorError) {
-            temperature = -1;
-            humidity    = -1;
-        }
-
-        // Update global variables (keeps compatibility with other tasks)
-        glob_temperature = temperature;
-        glob_humidity    = humidity;
-        glob_light = light;
-
-        // --- Determine state (UNCHANGED logic you provided) ---
-          String stateLabel;
-        if (sensorError) {
-          stateLabel = "SENSOR ERROR";
-        } 
-        else if (temperature >= 38 && humidity >= 95) {
-          stateLabel = "EXTREME HOT&WET!";
-        } 
-        else if ((temperature >= 33 && temperature < 38) || 
-                (humidity >= 85 && humidity < 95)) {
-          stateLabel = "VERY HOT/HUMID!";
-        } 
-        else if (temperature < 20 && humidity < 45) {
-          stateLabel = "COLD && DRY!";
-        } 
-        else if (temperature >= 38 && humidity <45) {
-          stateLabel = "EXTREME HOT&DRY!";
-        } 
-        else if (temperature < 20 && humidity >= 95) {
-          stateLabel = "COLD & WET!";
-        }
-        else if (temperature < 20) {
-          stateLabel = "COLD!";
-        } 
-        else if (temperature >=33) {
-          stateLabel = "VERY HOT!";
-        } 
-        else if (temperature >= 38) {
-          stateLabel = "EXTREME HOT!";
-        } 
-        else if (humidity >= 95) {
-          stateLabel = "WET!";
-        } 
-        else if (humidity >= 85 && humidity < 95) {
-          stateLabel = "HUMID!";
-        } 
-        else if (humidity < 45) {
-          stateLabel = "DRY!";
-        } 
-        else {
-          stateLabel = "NORMAL";
-        }
-
-
-
-        // --- Print to Serial (unchanged) ---
-        Serial.print("Humidity: ");
-        Serial.print(humidity);
-        Serial.print("%  Temperature: ");
-        Serial.print(temperature);
-        Serial.print("  Light: ");
-        Serial.print((int)light);
-        Serial.print("   State=");
-        Serial.println(stateLabel);
-
-        // --- Print to LCD: use the page-update helper ---
+        
+        // --- 3. Cập nhật Hiển thị LCD ---
+        // LCD cần cập nhật liên tục (ví dụ: 100ms) để hiển thị nhanh trạng thái nút nhấn, 
+        // nhưng logic chuyển trang tự động vẫn nằm trong updateLCDPages() dựa trên lastPageMs.
         updateLCDPages();
 
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        vTaskDelay(pdMS_TO_TICKS(100)); // Nhường quyền CPU 100ms
     }
 }
