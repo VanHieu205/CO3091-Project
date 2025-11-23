@@ -23,6 +23,9 @@ extern int r_glob;
 extern int g_glob;
 extern int b_glob;
 
+extern unsigned long lastNeoUpdate;
+extern bool neoOverride;
+
 extern float glob_temperature;
 extern float glob_humidity;
 extern float glob_light;
