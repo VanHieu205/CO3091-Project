@@ -14,6 +14,8 @@ int led2_mode = LED_AUTO;
 int r_glob = 0;
 int g_glob = 0;
 int b_glob = 0;
+unsigned long lastNeoUpdate = 0;  
+bool neoOverride = false;
 
 String ssid = "ESP32-YOUR NETWORK HERE!!!";
 String password = "12345678";

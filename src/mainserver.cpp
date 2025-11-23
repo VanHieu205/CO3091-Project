@@ -133,7 +133,28 @@ String mainPage()
         <button id="led2Btn" class="device-btn off" onclick="toggleLED(2)">LED 2</button>
 
       </div>
+      <div class="card">
+        <h2>🎨 Điều khiển NeoPixel</h2>
+
+        <label>R:</label>
+        <input type="number" id="neoR" min="0" max="255" value="0"><br>
+
+        <label>G:</label>
+        <input type="number" id="neoG" min="0" max="255" value="0"><br>
+
+        <label>B:</label>
+        <input type="number" id="neoB" min="0" max="255" value="255"><br><br>
+
+        <div id="colorPreview" style="
+          width:100%; height:50px; border-radius:10px; 
+          background: rgb(0,0,255); margin-bottom:10px;">
+        </div>
+
+        <button onclick="sendNeoColor()">Gửi màu</button>
+      </div>
     </div>
+    
+
 
     <!-- =================== SETTINGS TAB =================== -->
     <div id="settings" class="page">
@@ -207,10 +228,30 @@ String mainPage()
           })
           .catch(err => console.log("WiFi status error:", err));
       }
-
       setInterval(updateWiFiStatus, 3000);
       updateWiFiStatus();
+        function updatePreview() {
+        let r = document.getElementById("neoR").value;
+        let g = document.getElementById("neoG").value;
+        let b = document.getElementById("neoB").value;
 
+        document.getElementById("colorPreview").style.background =
+          `rgb(${r}, ${g}, ${b})`;
+      }
+
+      ["neoR", "neoG", "neoB"].forEach(id => {
+        document.getElementById(id).addEventListener("input", updatePreview);
+      });
+
+      function sendNeoColor() {
+        let r = document.getElementById("neoR").value;
+        let g = document.getElementById("neoG").value;
+        let b = document.getElementById("neoB").value;
+
+        fetch(`/neo_set?r=${r}&g=${g}&b=${b}`)
+          .then(r => r.text())
+          .then(t => alert("Đã gửi màu tới LED NeoPixel!"));
+      }
 
       
 
@@ -448,6 +489,19 @@ void handleToggle()
   json += "\"led2\":\"" + String(led2_mode == LED_ON ? "ON" : "OFF") + "\"}";
   server.send(200, "application/json", json);
 }
+void handleNeoSet()
+{
+  if (server.hasArg("r"))
+    r_glob = server.arg("r").toInt();
+  if (server.hasArg("g"))
+    g_glob = server.arg("g").toInt();
+  if (server.hasArg("b"))
+    b_glob = server.arg("b").toInt();
+
+  lastNeoUpdate = millis(); 
+  neoOverride = true;      
+  server.send(200, "text/plain", "OK");
+}
 
 void handleSensors()
 {
@@ -510,12 +564,15 @@ void handleWifiStatus()
 
   server.send(200, "application/json", json);
 }
-void handleWifiScan() {
+void handleWifiScan()
+{
   int n = WiFi.scanNetworks();
   String json = "[";
 
-  for (int i = 0; i < n; i++) {
-    if (i) json += ",";
+  for (int i = 0; i < n; i++)
+  {
+    if (i)
+      json += ",";
     json += "{";
     json += "\"ssid\":\"" + WiFi.SSID(i) + "\",";
     json += "\"rssi\":" + String(WiFi.RSSI(i)) + ",";
@@ -536,7 +593,7 @@ void setupServer()
   server.on("/connect", HTTP_GET, handleConnect);
   server.on("/wifi_status", HTTP_GET, handleWifiStatus);
   server.on("/wifi_scan", HTTP_GET, handleWifiScan);
-
+  server.on("/neo_set", HTTP_GET, handleNeoSet);
   server.begin();
 }
 
@@ -601,7 +658,6 @@ void WiFiEvent(WiFiEvent_t event)
     break;
   }
 }
-
 
 // ========== Main task ==========
 void main_server_task(void *pvParameters)
