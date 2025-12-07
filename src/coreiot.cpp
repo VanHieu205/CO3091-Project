@@ -2,7 +2,7 @@
 
 #define BROKER       "app.coreiot.io"
 #define MQTT_PORT    1883
-#define ACCESS_TOKEN "5CLjpFU5u4nrSlAI41lE"
+#define ACCESS_TOKEN "IzfworlqD9zcA9X6U8zV"
 
 
 // ========================== MQTT Client ==========================
@@ -30,13 +30,15 @@ void connectWiFi()
 void connectMQTT()
 {
     mqttClient.setServer(BROKER, MQTT_PORT);
-
+    mqttClient.setCallback(callback);
     while (!mqttClient.connected())
     {
         Serial.println("[MQTT] Connecting to CoreIoT...");
         if (mqttClient.connect("ESP32_ClientID", ACCESS_TOKEN, NULL)) // Login bằng TOKEN
         {
             Serial.println("[MQTT] Connected to CoreIoT MQTT");
+            mqttClient.subscribe("v1/devices/me/rpc/request/+");
+            Serial.println("Subscribed to v1/devices/me/rpc/request/+");
         }
         else
         {
@@ -46,6 +48,50 @@ void connectMQTT()
     }
 }
 
+
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.println("] ");
+
+  // Allocate a temporary buffer for the message
+  char message[length + 1];
+  memcpy(message, payload, length);
+  message[length] = '\0';
+  Serial.print("Payload: ");
+  Serial.println(message);
+
+  // Parse JSON
+  StaticJsonDocument<256> doc;
+  DeserializationError error = deserializeJson(doc, message);
+
+  if (error) {
+    Serial.print("deserializeJson() failed: ");
+    Serial.println(error.c_str());
+    return;
+  }
+
+  const char* method = doc["method"];
+  if (strcmp(method, "POWER") == 0) {
+    // Check params type (could be boolean, int, or string according to your RPC)
+    // Example: {"method": "setValueLED", "params": "ON"}
+    const char* params = doc["params"];
+
+    if (strcmp(params, "ON") == 0) {
+      Serial.println("Device turned ON.");
+      //TODO
+
+    } else {   
+      Serial.println("Device turned OFF.");
+      //TODO
+
+    }
+  } else {
+    Serial.print("Unknown method: ");
+    Serial.println(method);
+  }
+}
 
 // ====================== Task gửi dữ liệu cảm biến ======================
 void coreiot_task(void *pv)

@@ -9,5 +9,6 @@
 
 
 void coreiot_task(void *pvParameters);
+void callback(char* topic, byte* payload, unsigned int length);
 
 #endif
