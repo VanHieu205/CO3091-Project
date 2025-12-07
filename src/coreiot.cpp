@@ -1,8 +1,9 @@
 #include "coreiot.h"
-
+#include "led_blinky.h"
 #define BROKER       "app.coreiot.io"
 #define MQTT_PORT    1883
 #define ACCESS_TOKEN "IzfworlqD9zcA9X6U8zV"
+
 
 
 // ========================== MQTT Client ==========================
@@ -51,6 +52,7 @@ void connectMQTT()
 
 
 void callback(char* topic, byte* payload, unsigned int length) {
+  pinMode(LED_GPIO, OUTPUT);
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.println("] ");
@@ -80,12 +82,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
     if (strcmp(params, "ON") == 0) {
       Serial.println("Device turned ON.");
-      //TODO
+      digitalWrite(LED_GPIO,HIGH);
 
     } else {   
       Serial.println("Device turned OFF.");
-      //TODO
-
+      
+      digitalWrite(LED_GPIO,LOW);
     }
   } else {
     Serial.print("Unknown method: ");

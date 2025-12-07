@@ -1,7 +1,7 @@
 #include "global.h"
 
-float glob_temperature = 0 ;
-float glob_humidity = 0;
+float glob_temperature = 25 ;
+float glob_humidity = 25;
 float glob_light = 0;
 float last_inference = 0.0f;
 

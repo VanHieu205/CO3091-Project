@@ -268,6 +268,7 @@
  .pio/libdeps/yolo_uno/TensorFlowLite_ESP32/src/tensorflow/lite/micro/micro_profiler.h \
  .pio/libdeps/yolo_uno/TensorFlowLite_ESP32/src/tensorflow/lite/portable_type_to_tflitetype.h \
  .pio/libdeps/yolo_uno/TensorFlowLite_ESP32/src/tensorflow/lite/micro/system_setup.h \
- include/coreiot.h lib/PubSubClient/PubSubClient.h \
- lib/ArduinoJson/src/ArduinoJson.h lib/ArduinoJson/src/ArduinoJson.hpp \
+ include/monitor_button.h include/coreiot.h \
+ lib/PubSubClient/PubSubClient.h lib/ArduinoJson/src/ArduinoJson.h \
+ lib/ArduinoJson/src/ArduinoJson.hpp \
  lib/ArduinoJson/src/ArduinoJson/Configuration.hpp

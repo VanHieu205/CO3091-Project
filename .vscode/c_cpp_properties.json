@@ -10,7 +10,6 @@
             "includePath": [
                 "D:/HK251/CO3091_Project/CO3091-Project/include",
                 "D:/HK251/CO3091_Project/CO3091-Project/src",
-                "D:/HK251/CO3091_Project/CO3091-Project/lib/ArduinoJson/src",
                 "C:/Users/ADMIN/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src",
                 "C:/Users/ADMIN/.platformio/packages/framework-arduinoespressif32/libraries/FS/src",
                 "C:/Users/ADMIN/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
@@ -220,6 +219,7 @@
                 "C:/Users/ADMIN/.platformio/packages/framework-arduinoespressif32/cores/esp32",
                 "C:/Users/ADMIN/.platformio/packages/framework-arduinoespressif32/variants/m5stack_atoms3",
                 "D:/HK251/CO3091_Project/CO3091-Project/lib/ArduinoHttpClient",
+                "D:/HK251/CO3091_Project/CO3091-Project/lib/ArduinoJson/src",
                 "D:/HK251/CO3091_Project/CO3091-Project/lib/ThingsBoard",
                 "D:/HK251/CO3091_Project/CO3091-Project/.pio/libdeps/yolo_uno/Unity",
                 "C:/Users/ADMIN/.platformio/packages/framework-arduinoespressif32/libraries/ArduinoOTA/src",
@@ -258,7 +258,6 @@
                 "path": [
                     "D:/HK251/CO3091_Project/CO3091-Project/include",
                     "D:/HK251/CO3091_Project/CO3091-Project/src",
-                    "D:/HK251/CO3091_Project/CO3091-Project/lib/ArduinoJson/src",
                     "C:/Users/ADMIN/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src",
                     "C:/Users/ADMIN/.platformio/packages/framework-arduinoespressif32/libraries/FS/src",
                     "C:/Users/ADMIN/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
@@ -468,6 +467,7 @@
                     "C:/Users/ADMIN/.platformio/packages/framework-arduinoespressif32/cores/esp32",
                     "C:/Users/ADMIN/.platformio/packages/framework-arduinoespressif32/variants/m5stack_atoms3",
                     "D:/HK251/CO3091_Project/CO3091-Project/lib/ArduinoHttpClient",
+                    "D:/HK251/CO3091_Project/CO3091-Project/lib/ArduinoJson/src",
                     "D:/HK251/CO3091_Project/CO3091-Project/lib/ThingsBoard",
                     "D:/HK251/CO3091_Project/CO3091-Project/.pio/libdeps/yolo_uno/Unity",
                     "C:/Users/ADMIN/.platformio/packages/framework-arduinoespressif32/libraries/ArduinoOTA/src",
