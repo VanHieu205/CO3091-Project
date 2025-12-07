@@ -88,12 +88,18 @@ Mở Serial Monitor và quan sát các kết quả được in ra.
 ##**Kiểm thử các chức năng coreiot**
 1. Chạy  ```python Publisher.py ```  để connect upload dữ liệu lên server Coreiot và hiện lên dashboard
 2. Chạy  ```python TinyMQTTClientSubscriber.py ``` với token của device riêng biệt và chạy   ```python TinyMQTTClientPublisher.py ``` với token của device tên "alter to call rpc" & các giá trị long, lat như 
-HCMUT
+---
+   HCMUT
 long = 106.65789107082472
 lat = 10.772175109674038
+
+---
 #H6
 #long = 106.80633605864662
 #lat = 10.880018410410052
+
+---
+
 nếu là HCMUT thì subcriber tại ESP32_002 nhận rpc liên quan tới power on or off ngược lại là ESP32_001
 
 
