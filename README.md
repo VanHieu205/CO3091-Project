@@ -85,7 +85,7 @@ Mở Serial Monitor và quan sát các kết quả được in ra.
 2. Chạy file python ```evaluate_on_hw.py ```. Lưu ý: Sử dụng đúng cổng kết nối được nối với phần cứng, trong demo, nhóm sử dụng cổng COM3: ```SERIAL_PORT = 'COM3' ```
 3. Tiến hành quan sát và so sánh kết quả thu được với kết quả lý thuyết chạy ở hướng dẫn phía trên.
 
-##**Kiểm thử các chức năng coreiot**
+## Kiểm thử các chức năng coreiot
 1. Chạy  ```python Publisher.py ```  để connect upload dữ liệu lên server Coreiot và hiện lên dashboard
 2. Chạy  ```python TinyMQTTClientSubscriber.py ``` với token của device riêng biệt và chạy   ```python TinyMQTTClientPublisher.py ``` với token của device tên "alter to call rpc" & các giá trị long, lat như 
 ---
