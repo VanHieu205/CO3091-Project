@@ -23,7 +23,7 @@ void led_blinky(void *pvParameters) {
     float LIGHT = glob_light;
     
     // Nếu button được nhấn → xử lý event
-    if (xSemaphoreTake(xBinarySemaphore, 0)) {
+    if (xSemaphoreTake(xCountingSemaphore, 0)) {
         Serial.println("[LED] Button event received");
         // ví dụ đổi chế độ LED1
         led1_mode = LED_ON;

@@ -23,5 +23,5 @@ String wifi_ssid = "GoBi Lau";
 String wifi_password = "gobicamon";
 boolean isWifiConnected = false;
 SemaphoreHandle_t xBinarySemaphoreInternet = xSemaphoreCreateBinary();
-SemaphoreHandle_t xBinarySemaphore = xSemaphoreCreateBinary();
+SemaphoreHandle_t xCountingSemaphore = xSemaphoreCreateCounting(3,0);
 volatile uint8_t button_press_count = 0;

@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 
 
 try:
-    data = pd.read_csv("sensor_data.csv")
+    data = pd.read_csv("D:/HK251/CO3091_Project/CO3091-Project/TinyML/sensor_data.csv")
 except FileNotFoundError:
     print("Không tìm thấy file 'sensor_data.csv'.")
     exit()

@@ -28,7 +28,7 @@ void neo_blinky(void *pvParameters)
                 neoOverride = false; 
             }
         }
-        if (xSemaphoreTake(xBinarySemaphore, 0))
+        if (xSemaphoreTake(xCountingSemaphore, 0))
         {
             r = map(button_press_count, 1, 6, 0, 255);
             g = map(button_press_count, 1, 6, 255, 0);

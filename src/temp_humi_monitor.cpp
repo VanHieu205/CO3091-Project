@@ -226,11 +226,11 @@ void temp_humi_monitor(void *pvParameters) {
 
     while (1) {
         
-        //Xử lý sự kiện nút nhấn
-        // giữ timeout 0 
-        if (xBinarySemaphore != NULL) {
-             // non-blocking: chỉ thao tác nếu có event
-             if (xSemaphoreTake(xBinarySemaphore, 0)) {
+        // --- 1. Tiêu thụ sự kiện nút nhấn (Non-blocking) ---
+        // Phần này nên giữ lại 100ms vì nó xử lý tương tác người dùng
+        if (xCountingSemaphore != NULL) {
+             // non-blocking: chỉ xử lý nếu có event
+             if (xSemaphoreTake(xCountingSemaphore, 0)) {
                  
                  Serial.printf("[LCD] Button event consumed in temp_humi_monitor: %u\n", button_press_count);
 
