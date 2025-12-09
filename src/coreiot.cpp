@@ -2,8 +2,7 @@
 #include "led_blinky.h"
 #define BROKER       "app.coreiot.io"
 #define MQTT_PORT    1883
-#define ACCESS_TOKEN "IzfworlqD9zcA9X6U8zV"
-
+#define ACCESS_TOKEN "vATsHUpo4LEMSBwHqPwR"
 
 
 // ========================== MQTT Client ==========================
