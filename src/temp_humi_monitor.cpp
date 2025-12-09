@@ -3,43 +3,39 @@
 #include <WiFi.h>
 #include <Wire.h>
 
-LiquidCrystal_I2C lcd(33, 16, 2);   // 33 decimal = 0x21
+LiquidCrystal_I2C lcd(33, 16, 2);   // 33 thập phân = 0x21
 DHT20 dht20;
 static bool lcd_hold = false;
-// ------------------- custom chars for bar (create once) -------------------
 byte barChar[5][8] = {
-  // 0 = empty (we will avoid writing byte(0) as a glyph to prevent garbage)
+  // 0 = trống
   {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0},
-  // 1..3 = partial levels
+  // 1..3 = các mức phần lẻ của thanh
   {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1F}, 
   {0x0,0x0,0x0,0x0,0x0,0x0,0x1F,0x1F},
   {0x0,0x0,0x0,0x0,0x1F,0x1F,0x1F,0x1F},
-  // 4 = full block
+  // 4 = khối đầy
   {0x1F,0x1F,0x1F,0x1F,0x1F,0x1F,0x1F,0x1F}
 };
 
 void lcdInitCustomChars() {
-  // createChar indices 0..4, but we'll only write bytes 1..4 as blocks/partials
   for (int i = 0; i < 5; ++i) lcd.createChar(i, barChar[i]);
 }
 
-// ------------------- helper: print exactly 16 chars on a row -------------------
+// In đúng 16 ký tự trên một dòng
 void lcdPrintLine(LiquidCrystal_I2C &lcdRef, uint8_t row, const char *text) {
   char buf[17];
-  // copy up to 16 chars
   strncpy(buf, text, 16);
   buf[16] = '\0';
   int len = strlen(buf);
-  // pad with spaces if shorter
   for (int i = len; i < 16; ++i) buf[i] = ' ';
   buf[16] = '\0';
   lcdRef.setCursor(0, row);
   lcdRef.print(buf);
 }
 
-// ------------------- improved drawBar: writes exactly maxChars characters -------------------
+// Vẽ thanh bar, tối đa maxChars ký tự
 void drawBar(LiquidCrystal_I2C &lcdRef, uint8_t row, uint8_t col, float value, float maxValue, uint8_t maxChars=12) {
-  // If invalid, clear the region
+  // Nếu giá trị không hợp lệ thì xóa vùng hiển thị
   if (!isfinite(value) || !isfinite(maxValue) || maxValue <= 0.0f) {
     lcdRef.setCursor(col, row);
     for (uint8_t i = 0; i < maxChars; ++i) lcdRef.print(' ');
@@ -52,7 +48,7 @@ void drawBar(LiquidCrystal_I2C &lcdRef, uint8_t row, uint8_t col, float value, f
   float frac = scaled - full;
   int partialIdx = (int)round(frac * 4.0f); // 0..4
 
-  // safety
+  //giới hạn giá trị
   if (full < 0) full = 0;
   if (full > maxChars) full = maxChars;
   if (partialIdx < 0) partialIdx = 0;
@@ -60,40 +56,39 @@ void drawBar(LiquidCrystal_I2C &lcdRef, uint8_t row, uint8_t col, float value, f
 
   lcdRef.setCursor(col, row);
 
-  // Write full blocks (we use custom char index 4 for full)
   for (int i = 0; i < full && i < maxChars; ++i) lcdRef.write(byte(4));
 
-  // If space remains, write one partial or space, then pad with spaces to reach maxChars
   if (full < maxChars) {
     if (partialIdx == 0) {
-      // no partial => write space
+      // không có phần lẻ, in khoảng trắng
       lcdRef.print(' ');
     } else {
-      // partialIdx maps to custom char 1..4 (we created them as 1..4)
-      // but ensure partialIdx!=4 simultaneously with full==maxChars handled above
+      // partialIdx map tới custom char 1..4
+      // partialIdx != 4 khi full == maxChars
       lcdRef.write(byte(partialIdx));
     }
-    // pad remainder
+    // đệm phần còn lại bằng khoảng trắng
     for (int j = full + 1; j < maxChars; ++j) lcdRef.print(' ');
   }
 }
 
-// PAGE timing: match vTaskDelay(5000) in task
-const unsigned long PAGE_MS = 5000; // 5s/page
+// Thời gian mỗi trang
+const unsigned long PAGE_MS = 5000; // 5s/trang
 const uint8_t PAGE_COUNT = 4;
 static uint8_t currentPage = 0;
 static unsigned long lastPageMs = 0;
 
-// ------------------- updateLCDPages uses globals -------------------
+//updateLCDPages dùng biến global
 void updateLCDPages() {
         
   unsigned long now = millis();
+  // Nếu không đang giữ màn hình và đã tới thời gian chuyển trang thì tăng trang
   if (!lcd_hold && (now - lastPageMs >= PAGE_MS)) {
         currentPage = (currentPage + 1) % PAGE_COUNT;
         lastPageMs = now;
   }
 
-  // read globals once (atomic-ish)
+  // Đọc các biến global
   float temperature = glob_temperature;
   float humidity = glob_humidity;
   float light = glob_light;
@@ -102,7 +97,7 @@ void updateLCDPages() {
 
   bool sensorError = (temperature == -1.0f || humidity == -1.0f);
 
-  // --- PHẦN SỬA ĐỔI: Cập nhật logic giống hệt trong main loop ---
+  // Cập nhật logic
   String stateLabel;
         if (sensorError) {
           stateLabel = "SENSOR ERROR";
@@ -144,30 +139,29 @@ void updateLCDPages() {
         else {
           stateLabel = "NORMAL";
         }
-  // --------------------------------------------------------------
         
-  // prepare buffers
+  // chuẩn bị buffer in ra LCD
   char line[17];
 
   switch (currentPage) {
     case 0: {
-      // Line 1: T:xx.x H:yy  (no units). Build then pad to 16 exactly.
+      // Dòng 1: T:xx.x H:yy. Build rồi pad đủ 16 ký tự.
       if (sensorError) {
         snprintf(line, sizeof(line), "T:ERR H:ERR");
       } else {
-        // Use fixed width formatting for stability
+        // dùng định dạng cố định để hiển thị ổn định
         snprintf(line, sizeof(line), "T:%4.1f H:%3.0f", temperature, humidity);
       }
       lcdPrintLine(lcd, 0, line);
 
-      // Line 2: stateLabel (truncate/pad)
+      // Dòng 2: stateLabel
       strncpy(line, stateLabel.c_str(), 16);
       line[16] = '\0';
       lcdPrintLine(lcd, 1, line);
       break;
     }
 
-    case 1: { // Light Page (Giữ nguyên)
+    case 1: { // Trang ánh sáng
       snprintf(line, sizeof(line), "L:%4d", (int)light);
       lcdPrintLine(lcd, 0, line);
       drawBar(lcd, 1, 0, light, 5000.0f, 12);
@@ -176,7 +170,7 @@ void updateLCDPages() {
       break;
     }
 
-    case 2: { // AI Page (Giữ nguyên)
+    case 2: { // Trang AI
       if (!isfinite(ai)) ai = 0.0f;
       snprintf(line, sizeof(line), "AI:%.3f", ai);
       lcdPrintLine(lcd, 0, line);
@@ -188,7 +182,7 @@ void updateLCDPages() {
       break;
     }
 
-    case 3: { // WiFi Page (Giữ nguyên)
+    case 3: { // Trang WiFi
       if (wifiOk && WiFi.status() == WL_CONNECTED) {
         String ip = WiFi.localIP().toString();
         String l1 = "STA: " + ip;
@@ -208,72 +202,72 @@ void updateLCDPages() {
   }
 }
 
-// ------------------- main task -------------------
+// task chính 
 void temp_humi_monitor(void *pvParameters) {
 
-    // initialize I2C and sensor
-    Wire.begin(11, 12);     // YOLO UNO I2C pins (verify pins for your board)
-    Wire.setClock(100000);  // stable 100kHz
+    // khởi tạo I2C và cảm biến
+    Wire.begin(11, 12);     // chân I2C của YOLO UNO
+    Wire.setClock(100000);  // chạy bus ở 100kHz
     Serial.begin(115200);
     dht20.begin();
 
-    // LCD init
+    // Khởi tạo LCD
     lcd.begin();
-    lcdInitCustomChars();   // create custom chars once
+    lcdInitCustomChars();   // tạo các ký tự tùy chỉnh 1 lần
     lcd.backlight();
     lcd.clear();
-    lcdPrintLine(lcd, 0, "Starting...      ");
-    lcdPrintLine(lcd, 1, "Initializing...  ");
+    lcdPrintLine(lcd, 0, "Starting    ");
+    lcdPrintLine(lcd, 1, "Initializing ");
     vTaskDelay(pdMS_TO_TICKS(500));
     
-    // --- BỘ ĐẾM THỜI GIAN THỐNG NHẤT CHO CẬP NHẬT CẢM BIẾN, SERIAL, và LCD AUTO-PAGE ---
-    unsigned long lastUpdateMs = 0; // Thay thế lastSerialMs và lastLCDUpdate
-    const unsigned long UPDATE_INTERVAL = 5000UL; // print, read sensor, auto-page every 5s
+    //bộ đếm thời gian cho cập nhật cảm biến, serial, và autopage LCD
+    unsigned long lastUpdateMs = 0; // thay cho lastSerialMs và lastLCDUpdate
+    const unsigned long UPDATE_INTERVAL = 5000UL; // đọc cảm biến, in, autopage mỗi 5 giây
 
     while (1) {
         
         // --- 1. Tiêu thụ sự kiện nút nhấn (Non-blocking) ---
         // Phần này nên giữ lại 100ms vì nó xử lý tương tác người dùng
-        if (xBinarySemaphore != NULL) {
+        if (xCountingSemaphore != NULL) {
              // non-blocking: chỉ xử lý nếu có event
-             if (xSemaphoreTake(xBinarySemaphore, 0)) {
+             if (xSemaphoreTake(xCountingSemaphore, 0)) {
                  
                  Serial.printf("[LCD] Button event consumed in temp_humi_monitor: %u\n", button_press_count);
 
-                 // Cập nhật trang hoặc chế độ giữ (hold) dựa trên nút nhấn
+                 // Cập nhật trang hoặc bật/tắt chế độ giữ dựa trên số lần nhấn
                  if (button_press_count == 1) {
-                     // next page
+                     // chuyển sang trang tiếp theo
                      currentPage = (currentPage + 1) % PAGE_COUNT;
-                     lastPageMs = millis(); // Reset auto-page timer
+                     lastPageMs = millis(); // reset bộ đếm autopage
                  } else if (button_press_count == 2) {
-                     // prev page
+                     // quay về trang trước
                      if (currentPage == 0) currentPage = PAGE_COUNT - 1;
                      else currentPage--;
-                     lastPageMs = millis(); // Reset auto-page timer
+                     lastPageMs = millis(); // reset bộ đếm autopage
                  } else if (button_press_count >= 3) {
-                     // toggle hold
+                     // nhấn >=3 lần để bật/tắt chế độ giữ trang
                      lcd_hold = !lcd_hold;
                      Serial.printf("[LCD] Hold toggled -> %s\n", lcd_hold ? "ON" : "OFF");
-                     lastPageMs = millis(); // Reset auto-page timer
+                     lastPageMs = millis(); // reset bộ đếm autopage
                  }
-                 // Sau khi nhấn nút, LCD cần được vẽ lại ngay để phản ánh thay đổi
+                 // Sau khi có sự kiện nút, vẽ lại LCD
                  updateLCDPages();
              }
          }
 
-        // --- 2. Cập nhật Dữ liệu Cảm biến, Global, và Serial (Mỗi 5s) ---
+        //2. Cập nhật dữ liệu cảm biến, global, và in serial (mỗi 5s)
         unsigned long now = millis();
         if (now - lastUpdateMs >= UPDATE_INTERVAL) {
             lastUpdateMs = now;
             
-            // --- Đọc Cảm biến (Chỉ thực hiện mỗi 5 giây) ---
+            //đọc cảm biến 
             dht20.read();
             float temperature = dht20.getTemperature();
             float humidity    = dht20.getHumidity();
-            float light = analogRead(LDR_PIN); // raw ADC 0..4095
+            float light = analogRead(LDR_PIN); // ADC 0..4095
 
             bool sensorError = false;
-            if (temperature == -1.0f || humidity == -1.0f) { // So sánh với -1.0f
+            if (temperature == -1.0f || humidity == -1.0f) { // so sánhvới -1.0f
                  Serial.println("Failed to read from DHT20!");
                  sensorError = true;
             }
@@ -283,18 +277,16 @@ void temp_humi_monitor(void *pvParameters) {
                 humidity    = -1.0f;
             }
 
-            // Update global variables
+            // Cập nhật biến toàn cục
             glob_temperature = temperature;
             glob_humidity    = humidity;
             glob_light = light;
 
-            // --- Xác định State (Dựa trên logic đã cung cấp) ---
+            //Xác định state (dùng cùng logic với updateLCDPages())
             String stateLabel;
             if (sensorError) {
                 stateLabel = "SENSOR ERROR";
             } 
-            // ... (Phần logic xác định state ở đây để giữ cho code ngắn gọn) ...
-            // Lưu ý: Logic stateLabel ở đây nên đồng nhất với logic trong updateLCDPages()
             else if (temperature >= 38 && humidity >= 95) {
                 stateLabel = "EXTREME HOT&WET!";
             } else if ((temperature >= 33 && temperature < 38) || (humidity >= 85 && humidity < 95)) {
@@ -322,16 +314,16 @@ void temp_humi_monitor(void *pvParameters) {
             }
             
 
-            // --- In ra Serial (Mỗi 5s) ---
+            // --- In ra Serial (mỗi 5s) ---
             Serial.printf("T:%.1f, H:%.0f%%, Light:%d, State:%s\n", 
                           temperature, humidity, (int)light, stateLabel.c_str());
         }
         
-        // --- 3. Cập nhật Hiển thị LCD ---
-        // LCD cần cập nhật liên tục (ví dụ: 100ms) để hiển thị nhanh trạng thái nút nhấn, 
-        // nhưng logic chuyển trang tự động vẫn nằm trong updateLCDPages() dựa trên lastPageMs.
+        // --- 3. Cập nhật hiển thị LCD ---
+        // LCD cập nhật thường xuyên để phản hồi nút nhấn nhanh,
+        // còn logic tự chuyển trang được xử lý trong updateLCDPages() dựa vào lastPageMs.
         updateLCDPages();
 
-        vTaskDelay(pdMS_TO_TICKS(100)); // Nhường quyền CPU 100ms
+        vTaskDelay(pdMS_TO_TICKS(100)); // nhường CPU 100ms
     }
 }

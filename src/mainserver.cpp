@@ -498,8 +498,8 @@ void handleNeoSet()
   if (server.hasArg("b"))
     b_glob = server.arg("b").toInt();
 
-  lastNeoUpdate = millis(); 
-  neoOverride = true;      
+  lastNeoUpdate = millis();
+  neoOverride = true;
   server.send(200, "text/plain", "OK");
 }
 
@@ -529,31 +529,37 @@ void handleConnect()
 }
 void handleWifiStatus()
 {
+  // Lấy chế độ hiện tại: AP hay STA
   String mode = isAPMode ? "AP" : "STA";
 
+  // Lấy IP tùy theo chế độ hoạt động
   String ip;
   if (isAPMode)
   {
-    ip = WiFi.softAPIP().toString();
+    ip = WiFi.softAPIP().toString(); // IP của Access Point
   }
   else
   {
     if (WiFi.status() == WL_CONNECTED)
-      ip = WiFi.localIP().toString();
+      ip = WiFi.localIP().toString(); // IP chế độ STA
     else
-      ip = "0.0.0.0";
+      ip = "0.0.0.0"; // Chưa có IP
   }
 
+  // Lấy RSSI (độ mạnh tín hiệu WiFi)
   long rssi = 0;
   if (!isAPMode && WiFi.status() == WL_CONNECTED)
   {
     rssi = WiFi.RSSI();
   }
 
+  // "online" nghĩa là đang ở STA mode, đã kết nối AP và đạt internet
   bool online = (!isAPMode && WiFi.status() == WL_CONNECTED && isWifiConnected);
 
+  // Thời gian chạy từ lúc boot (giây)
   unsigned long uptimeSec = (millis() - bootMillis) / 1000;
 
+  // Xuất JSON trả về web server
   String json = "{";
   json += "\"mode\":\"" + mode + "\",";
   json += "\"ip\":\"" + ip + "\",";
@@ -564,8 +570,10 @@ void handleWifiStatus()
 
   server.send(200, "application/json", json);
 }
+
 void handleWifiScan()
 {
+  // Quét danh sách WiFi xung quanh
   int n = WiFi.scanNetworks();
   String json = "[";
 
@@ -586,6 +594,7 @@ void handleWifiScan()
 
 void setupServer()
 {
+  // Khai báo các endpoint API của web server
   server.on("/", HTTP_GET, handleRoot);
   server.on("/toggle", HTTP_GET, handleToggle);
   server.on("/sensors", HTTP_GET, handleSensors);
@@ -594,44 +603,54 @@ void setupServer()
   server.on("/wifi_status", HTTP_GET, handleWifiStatus);
   server.on("/wifi_scan", HTTP_GET, handleWifiScan);
   server.on("/neo_set", HTTP_GET, handleNeoSet);
+
+  // Bắt đầu web server
   server.begin();
 }
 
 void startAP()
 {
+  // Chuyển sang chế độ phát WiFi AP
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid.c_str(), password.c_str());
+
   Serial.print("AP IP address: ");
   Serial.println(WiFi.softAPIP());
+
   isAPMode = true;
   connecting = false;
 }
 
 void connectToWiFi()
 {
+  // Ngắt kết nối cũ hoàn toàn
   WiFi.disconnect(true);
   vTaskDelay(100);
+
+  // Chuyển sang chế độ STA
   WiFi.mode(WIFI_STA);
+
+  // Kết nối không mật khẩu hoặc có mật khẩu
   if (wifi_password.isEmpty())
   {
-
     WiFi.begin(wifi_ssid.c_str());
   }
   else
   {
     WiFi.begin(wifi_ssid.c_str(), wifi_password.c_str());
   }
+
   Serial.print("Connecting to: ");
   Serial.print(wifi_ssid.c_str());
-
   Serial.print(" Password: ");
   Serial.print(wifi_password.c_str());
 }
+
 void WiFiEvent(WiFiEvent_t event)
 {
+  // Callback sự kiện WiFi của ESP32
   switch (event)
   {
-
   case SYSTEM_EVENT_STA_CONNECTED:
     Serial.println("[WiFi] Đã kết nối tới Access Point.");
     break;
@@ -662,24 +681,35 @@ void WiFiEvent(WiFiEvent_t event)
 // ========== Main task ==========
 void main_server_task(void *pvParameters)
 {
+  // Đăng ký callback sự kiện WiFi
   WiFi.onEvent(WiFiEvent);
+
+  // Cấu hình pin và đèn báo
   pinMode(BOOT_PIN, INPUT_PULLUP);
   pinMode(LED2_PIN, OUTPUT);
   pinMode(LED1_PIN, OUTPUT);
+
+  // Lưu thời điểm khởi động
   bootMillis = millis();
+
+  // Bắt đầu ở chế độ AP
   startAP();
+
+  // Bật web server
   setupServer();
 
   while (1)
   {
+    // Xử lý request từ client HTTP
     server.handleClient();
 
-    // BOOT Button to switch to AP Mode
+    // Nếu nhấn nút BOOT,  chuyển về AP mode
     if (digitalRead(BOOT_PIN) == LOW)
     {
       vTaskDelay(100);
       if (digitalRead(BOOT_PIN) == LOW)
       {
+        // Chỉ chuyển khi đang không ở AP mode
         if (!isAPMode)
         {
           startAP();
@@ -688,21 +718,23 @@ void main_server_task(void *pvParameters)
       }
     }
 
-    // STA Mode
+    // Khi đang trong quá trình kết nối WiFi STA
     if (connecting)
     {
+      // Đã kết nối thành công
       if (WiFi.status() == WL_CONNECTED)
       {
         Serial.printf("STA IP address: %s\n", WiFi.localIP().toString().c_str());
-        isWifiConnected = true; // Internet access
 
+        isWifiConnected = true; // trạng thái có Internet
         xSemaphoreGive(xBinarySemaphoreInternet);
 
         isAPMode = false;
         connecting = false;
       }
+      // Nếu quá 10 giây chưa kết nối thành công, quay lại AP
       else if (millis() - connect_start_ms > 10000)
-      { // timeout 10s
+      {
         Serial.println("WiFi connect failed! Back to AP.");
         startAP();
         setupServer();
@@ -711,6 +743,7 @@ void main_server_task(void *pvParameters)
       }
     }
 
-    vTaskDelay(20); // avoid watchdog reset
+    // Delay nhỏ để tránh watchdog
+    vTaskDelay(20);
   }
 }

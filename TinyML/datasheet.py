@@ -3,7 +3,7 @@ import numpy as np
 from scipy.special import expit as sigmoid
 
 np.random.seed(42)
-n = 200  # số mẫu
+n = 500  # số mẫu
 
 # 1) Sinh T, RH theo nhiều vùng môi trường
 counts = [

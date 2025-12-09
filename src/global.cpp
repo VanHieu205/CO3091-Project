@@ -1,7 +1,7 @@
 #include "global.h"
 
-float glob_temperature = 0 ;
-float glob_humidity = 0;
+float glob_temperature = 25 ;
+float glob_humidity = 25;
 float glob_light = 0;
 float last_inference = 0.0f;
 
@@ -23,5 +23,5 @@ String wifi_ssid = "GoBi Lau";
 String wifi_password = "gobicamon";
 boolean isWifiConnected = false;
 SemaphoreHandle_t xBinarySemaphoreInternet = xSemaphoreCreateBinary();
-SemaphoreHandle_t xBinarySemaphore = xSemaphoreCreateBinary();
+SemaphoreHandle_t xCountingSemaphore = xSemaphoreCreateCounting(3,0);
 volatile uint8_t button_press_count = 0;

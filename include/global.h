@@ -38,7 +38,7 @@ extern String wifi_password;
 extern boolean isWifiConnected;
 extern SemaphoreHandle_t xBinarySemaphoreInternet;
 
-extern SemaphoreHandle_t xBinarySemaphore;
+extern SemaphoreHandle_t xCountingSemaphore;
 extern volatile uint8_t button_press_count;
 
 
