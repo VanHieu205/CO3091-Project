@@ -75,6 +75,23 @@ Vào PlatformIO Core CLI: ```pio run -t upload ```
 5. Mở Serial Monitor
 Mở Serial Monitor và quan sát các kết quả được in ra.
 
+
+## Chạy Webserver trên ESP32-S3
+
+Trước khi thực hiện các tác vụ TinyML, hãy đảm bảo webserver đã được khởi chạy và hoạt động bình thường:
+
+1. **Upload firmware vào ESP32-S3** (tham khảo phần "Cách build và chạy dự án").  
+2. **Bật task server trong `main.cpp`**:
+   - Đảm bảo task `mainserver_task`không bị comment, để ESP32-S3 khởi chạy webserver.  
+3. **Kết nối thiết bị với Wi-Fi** do ESP32-S3 phát ra hoặc kết nối được cấu hình trong mã nguồn. Ở chế độ mặc định, ESP sẽ ở chế độ Access Point (AP) với IP truy cập mặc định là 192.168.4.1
+4. **Truy cập webserver từ trình duyệt**:
+   - Mở Serial Monitor để xem địa chỉ IP của ESP32-S3.  
+   - Nhập địa chỉ IP vào trình duyệt để mở giao diện webserver.  
+5. **Kiểm tra các chức năng webserver**:
+   - Điều khiển LED bình thường và LED Neopixel.  
+   - Xem biểu đồ realtime về nhiệt độ, độ ẩm, ánh sáng.  
+
+
 ## TinyML – Tạo và Training mô hình lý thuyết
 1. Tạo tập datasheet :  ```python datasheet.py ```
 2. Train model và chuyển model qua TFLite: ```python TinyML_model.py```
